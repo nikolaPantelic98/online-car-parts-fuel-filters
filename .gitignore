@@ -1,0 +1,6 @@
+all data/
+oil filters/
+old/
+.idea/
+.venv/
+car_parts_data.xlsx
