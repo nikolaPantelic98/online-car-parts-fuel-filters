@@ -1,17 +1,16 @@
+import re
+from datetime import datetime
 from time import sleep
 
+import undetected_chromedriver as uc
+from openpyxl import Workbook
+from openpyxl import load_workbook
 from selenium import webdriver
 from selenium.common import StaleElementReferenceException, NoSuchElementException, TimeoutException, \
     ElementClickInterceptedException
 from selenium.webdriver.common.by import By
-import undetected_chromedriver as uc
-import re
-from openpyxl import Workbook
-from openpyxl import load_workbook
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
-from datetime import datetime
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 def setup_driver():
@@ -66,9 +65,13 @@ def initialize_excel(file_path):
     sheet = workbook.active
     headers = ["FILTER NAME", "FILTER NUMBER", "FILTER BRAND", "FILTER TYPE", "HEIGHT (mm)", "DIAMETER (mm)",
                "INNER DIAMETER (mm)", "INNER DIAMETER 2 (mm)", "INLET Ø (mm)", "OUTLET Ø (mm)", "PIPE Ø (mm)",
-               "CONSTRUCTION YEAR TO", "CONSTRUCTION YEAR FROM", "ENGINE CODE", "ENGINE NUMBER TO", "ENGINE NUMBER FROM", "VEHICLE IDENTIFICATION NUMBER (VIN) FROM:", "VEHICLE IDENTIFICATION NUMBER (VIN) TO:",
-               "SUPPLEMENTARY ARTICLE / SUPPLEMENTARY INFO", "SUPPLEMENTARY ARTICLE / SUPPLEMENTARY INFO 2", "MANUFACTURER RESTRICTION", "HOUSING TYPE", "STATUS", "CAR BRAND", "CAR MODEL",
-               "CAR SERIES AND YEAR", "CAR ENGINE"]
+               "CONSTRUCTION YEAR TO", "CONSTRUCTION YEAR FROM", "ENGINE CODE", "ENGINE NUMBER TO",
+               "ENGINE NUMBER FROM", "VEHICLE IDENTIFICATION NUMBER (VIN) FROM",
+               "VEHICLE IDENTIFICATION NUMBER (VIN) TO", "VEHICLE IDENTIFICATION NUMBER (VIN)",
+               "SUPPLEMENTARY ARTICLE / SUPPLEMENTARY INFO", "SUPPLEMENTARY ARTICLE / SUPPLEMENTARY INFO 2",
+               "MANUFACTURER RESTRICTION", "HOUSING TYPE", "VEHICLE EQUIPMENT", "EMISSION STANDARD",
+               "LEFT/RIGHT HAND DRIVE VEHICLES", "STATUS", "FOR OE NUMBER",
+               "CAR BRAND", "CAR MODEL", "CAR SERIES AND YEAR", "CAR ENGINE"]
     sheet.append(headers)
     workbook.save(file_path)
 
@@ -209,7 +212,7 @@ def online_car_parts(driver, file_path):
     # }
 
     desired_brands = {
-        "VW"
+        "ABARTH"
     }
 
     # Pronalaženje svih opcija unutar alphabetical_optgroup elementa
@@ -418,8 +421,8 @@ def online_car_parts(driver, file_path):
                                                                 By.XPATH,
                                                                 './/div[@class="product-card__title"]//*[self::a[contains(@class, "product-card__title-link")] or self::span[contains(@class, "product-card__title-link")]]')
                                                             fuel_filter_name = \
-                                                            fuel_filter_name_element.text.split('\n')[
-                                                                0].strip()
+                                                                fuel_filter_name_element.text.split('\n')[
+                                                                    0].strip()
                                                             print(f"- Original Air Filter name: {fuel_filter_name}")
 
                                                             if article_number in fuel_filter_name:
@@ -562,7 +565,7 @@ def online_car_parts(driver, file_path):
                                                             # Pipe Ø [mm]
                                                             try:
                                                                 pipe_li = ul_element.find_element(By.XPATH,
-                                                                                                    './/li[./span[contains(@class, "left") and contains(text(), "Pipe Ø [mm]")]]')
+                                                                                                  './/li[./span[contains(@class, "left") and contains(text(), "Pipe Ø [mm]")]]')
                                                                 fuel_filter_pipe_mm = pipe_li.find_element(
                                                                     By.XPATH,
                                                                     './span[contains(@class, "right")]').text
@@ -668,6 +671,21 @@ def online_car_parts(driver, file_path):
                                                                 print(
                                                                     "- [404] VIN to not found.")
 
+                                                            # Vehicle Identification Number (VIN)
+                                                            try:
+                                                                vin_li = ul_element.find_element(
+                                                                    By.XPATH,
+                                                                    './/li[./span[contains(@class, "left") and contains(text(), "Vehicle Identification Number (VIN):")]]')
+                                                                fuel_filter_vin = vin_li.find_element(
+                                                                    By.XPATH,
+                                                                    './span[contains(@class, "right")]').text
+                                                                print(
+                                                                    f"- VIN: {fuel_filter_vin}")
+                                                            except NoSuchElementException:
+                                                                fuel_filter_vin = ""
+                                                                print(
+                                                                    "- [404] VIN not found.")
+
                                                             # Supplementary Article / Supplementary Info
                                                             try:
                                                                 supplementary_article_li = ul_element.find_element(
@@ -725,6 +743,48 @@ def online_car_parts(driver, file_path):
                                                                 fuel_filter_housing_type = ""
                                                                 print("- [404] Housing Type not found.")
 
+                                                            # Vehicle Equipment
+                                                            try:
+                                                                vehicle_equipment_li = ul_element.find_element(
+                                                                    By.XPATH,
+                                                                    './/li[./span[contains(@class, "left") and contains(text(), "Vehicle Equipment")]]')
+                                                                fuel_filter_vehicle_equipment = vehicle_equipment_li.find_element(
+                                                                    By.XPATH,
+                                                                    './span[contains(@class, "right")]').text
+                                                                print(
+                                                                    f"- Vehicle Equipment: {fuel_filter_vehicle_equipment}")
+                                                            except NoSuchElementException:
+                                                                fuel_filter_vehicle_equipment = ""
+                                                                print("- [404] Vehicle Equipment not found.")
+
+                                                            # Emission standard
+                                                            try:
+                                                                emission_standard_li = ul_element.find_element(
+                                                                    By.XPATH,
+                                                                    './/li[./span[contains(@class, "left") and contains(text(), "Emission Standard")]]')
+                                                                fuel_filter_emission_standard = emission_standard_li.find_element(
+                                                                    By.XPATH,
+                                                                    './span[contains(@class, "right")]').text
+                                                                print(
+                                                                    f"- Emission Standard: {fuel_filter_emission_standard}")
+                                                            except NoSuchElementException:
+                                                                fuel_filter_emission_standard = ""
+                                                                print("- [404] Emission Standard not found.")
+
+                                                            # Left-/right-hand drive vehicles
+                                                            try:
+                                                                left_right_hand_li = ul_element.find_element(
+                                                                    By.XPATH,
+                                                                    './/li[./span[contains(@class, "left") and contains(text(), "Left-/right-hand drive vehicles")]]')
+                                                                fuel_filter_left_right_hand = left_right_hand_li.find_element(
+                                                                    By.XPATH,
+                                                                    './span[contains(@class, "right")]').text
+                                                                print(
+                                                                    f"- Left-/right-hand drive vehicles: {fuel_filter_left_right_hand}")
+                                                            except NoSuchElementException:
+                                                                fuel_filter_left_right_hand = ""
+                                                                print("- [404] Left-/right-hand drive vehicles not found.")
+
                                                             # status
                                                             try:
                                                                 status_element = product_main_div.find_element(
@@ -737,22 +797,52 @@ def online_car_parts(driver, file_path):
                                                                 status_text = ""
                                                                 print("- [404] Status element not found.")
 
+                                                            # for OE number
+                                                            try:
+                                                                oe_number_li = ul_element.find_element(
+                                                                    By.XPATH,
+                                                                    './/li[./span[contains(@class, "left") and contains(text(), "for OE number:")]]')
+                                                                fuel_filter_oe_number = oe_number_li.find_element(
+                                                                    By.XPATH,
+                                                                    './span[contains(@class, "right")]').text
+                                                                print(
+                                                                    f"- For OE Number: {fuel_filter_oe_number}")
+                                                            except NoSuchElementException:
+                                                                fuel_filter_oe_number = ""
+                                                                print("- [404] For OE Number not found.")
 
                                                             append_to_excel(file_path,
-                                                                            [fuel_filter_name, article_number,
+                                                                            [fuel_filter_name,
+                                                                             article_number,
                                                                              fuel_filter_brand_name,
                                                                              fuel_filter_type,
-                                                                             fuel_filter_height_mm, fuel_filter_diameter_mm,
+                                                                             fuel_filter_height_mm,
+                                                                             fuel_filter_diameter_mm,
                                                                              fuel_filter_inner_diameter,
                                                                              fuel_filter_inner_diameter2,
                                                                              fuel_filter_inlet_mm,
-                                                                             fuel_filter_outlet_mm, fuel_filter_pipe_mm, fuel_filter_construction_year_to,
-                                                                             fuel_filter_construction_year_from, engine_code,
-                                                                             fuel_filter_engine_number_to, fuel_filter_engine_number_from,
-                                                                             fuel_filter_vin_from, fuel_filter_vin_to,
-                                                                             fuel_filter_supplementary_article, fuel_filter_supplementary_article2,
-                                                                             fuel_filter_manufacturer_restriction, fuel_filter_housing_type, status_text,
-                                                                             brand_name, model_name, series_name,
+                                                                             fuel_filter_outlet_mm,
+                                                                             fuel_filter_pipe_mm,
+                                                                             fuel_filter_construction_year_to,
+                                                                             fuel_filter_construction_year_from,
+                                                                             engine_code,
+                                                                             fuel_filter_engine_number_to,
+                                                                             fuel_filter_engine_number_from,
+                                                                             fuel_filter_vin_from,
+                                                                             fuel_filter_vin_to,
+                                                                             fuel_filter_vin,
+                                                                             fuel_filter_supplementary_article,
+                                                                             fuel_filter_supplementary_article2,
+                                                                             fuel_filter_manufacturer_restriction,
+                                                                             fuel_filter_housing_type,
+                                                                             fuel_filter_vehicle_equipment,
+                                                                             fuel_filter_emission_standard,
+                                                                             fuel_filter_left_right_hand,
+                                                                             status_text,
+                                                                             fuel_filter_oe_number,
+                                                                             brand_name,
+                                                                             model_name,
+                                                                             series_name,
                                                                              engine_name])
                                                         else:
                                                             print("ul_element not found.")
@@ -822,7 +912,8 @@ def online_car_parts(driver, file_path):
                                 options_series = model.find_elements(By.TAG_NAME, 'option')
                                 print(f"PASSED: 'j' ({j}) is in the range for models list (length {len(models)})")
                             else:
-                                print(f"[800] IndexError: 'j' ({j}) is out of range for models list (length {len(models)})")
+                                print(
+                                    f"[800] IndexError: 'j' ({j}) is out of range for models list (length {len(models)})")
                                 screenshot_path1 = "/home/nikola/Projects/Local Projects/online-car-parts-fuel-filters/error1.png"
                                 driver.save_screenshot(screenshot_path1)
                         except IndexError as e:
@@ -863,7 +954,8 @@ def online_car_parts(driver, file_path):
                                 model = models[j]
                                 options_series = model.find_elements(By.TAG_NAME, 'option')
                             else:
-                                print(f"[841] IndexError: 'j' ({j}) is out of range for models list (length {len(models)})")
+                                print(
+                                    f"[841] IndexError: 'j' ({j}) is out of range for models list (length {len(models)})")
                 except StaleElementReferenceException as e:
                     print(f"StaleElementReferenceException: {e}")
                     driver.refresh()
